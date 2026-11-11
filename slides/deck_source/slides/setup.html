@@ -1,0 +1,29 @@
+<section id="setup" data-transition="fade" style="background:#F7F6F2;color:#1B2A3A;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1.1;color:#1B2A3A">Setup: written from scratch in plain PyTorch</h2>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#1B2A3A">Data</h3>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">CIFAR-10: 50,000 train and 10,000 test images, 32 x 32, 10 classes. No validation set.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#1B2A3A">Model</h3>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">ViT, width 192, depth 12, 3 heads, patch 2: 257 tokens, 5.34M parameters. Fixed sinusoidal position embeddings.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#1B2A3A">Training</h3>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">AdamW, lr 3e-3, weight decay 0.01, batch 512, 100 epochs, RandAugment and Cutout. One T4 on Kaggle, about 2.3 h per run.</p>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#ECEBE5;padding:40px;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#B35C14">Our choices where the paper is silent</h3>
+<p style="font-size:28px;line-height:1.5;color:#1B2A3A">5 warmup epochs then cosine decay · RandAugment(2, 9) · Cutout 16 x 16 · random crop and flip · no dropout · float16 mixed precision · seed 0, one run per setting</p>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6A7179">3 / 7 · Code: model.py, mimetic_init.py, train.py</p>
+<aside>Three files. model.py: patch embedding is a convolution with kernel and stride 2, so 16 x 16 = 256 patches plus a class token. Pre-norm blocks, separate q, k, v and projection layers so mimetic init can set each one, MLP ratio 4 with GELU, head on the class token. Attention uses F.scaled_dot_product_attention: the same formula softmax(QK^T / sqrt(64)) V, but it does not store the 257 x 257 matrix; the hand-written version ran out of memory at batch 512. The self-test shows both agree to below 1e-6.
+
+mimetic_init.py: new Z1 per head, one Z2 per layer. Self-test: W_Q W_K^T diagonal +0.39 to +0.40 (below 0.7 because we keep only rank 64 of 192), W_V W_proj diagonal -0.40.
+
+train.py: learning rate set by hand every step, warmup then cosine. Base init is the PyTorch default for every layer.
+
+The paper does not state the schedule, the augmentation strengths, crop and flip, or regularization. These are our choices and are a likely source of the gap to the paper.</aside>
+</section>

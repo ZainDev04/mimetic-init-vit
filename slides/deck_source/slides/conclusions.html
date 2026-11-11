@@ -1,0 +1,26 @@
+<section id="conclusions" data-transition="fade" style="background:#1B2A3A;color:#F7F6F2;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:56px">
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1.1;color:#F7F6F2">Conclusions</h2>
+<div style="display:flex;gap:48px">
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:120px;font-weight:600;line-height:1;color:#E8A35C">+3.74</p>
+<p style="font-size:28px;line-height:1.4;color:#C9D3DD">points from mimetic init on CIFAR-10 (paper +4.71). The claim reproduces.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:120px;font-weight:600;line-height:1;color:#E8A35C">50 ep</p>
+<p style="font-size:28px;line-height:1.4;color:#C9D3DD">for mimetic to pass base's 100-epoch accuracy. The gain grows with training length.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:120px;font-weight:600;line-height:1;color:#E8A35C">1-2</p>
+<p style="font-size:28px;line-height:1.4;color:#C9D3DD">points below the paper in absolute accuracy, most likely from settings the paper does not state.</p>
+</div>
+</div>
+<p style="font-size:32px;line-height:1.4;color:#F7F6F2">A closed-form initialization with no data and no pretraining gives a large, reproducible gain for small ViTs.</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#9FB0C0">7 / 7 · AI use (Claude, Anthropic) is cited in the report and README</p>
+<aside>Summary for the viva: we reimplemented the ViT, mimetic init and training from scratch and reproduced the main claim: 85.13 to 88.87, against the paper's 86.07 to 90.78. The gain is 3.74 against 4.71.
+
+Own experiment: the gain grows with training length on CIFAR-10 (+1.82, +2.42, +3.74), and mimetic at 50 epochs passes base at 100.
+
+Gap: position scale 2, our main suspect, did not help. The rest most likely comes from settings the paper does not report; only the authors' configuration or more seeds could settle it.
+
+AI use: we used Claude as a helper for explaining the paper, suggesting and debugging code, setting up the runs and drafting text. The team made the decisions, checked results against the logs and can explain every line.</aside>
+</section>

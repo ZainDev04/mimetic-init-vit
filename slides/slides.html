@@ -1,0 +1,148 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Mimetic Initialization: a reproduction</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400..700&display=swap"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap"><style>
+@page { size: 1920px 1080px; margin: 0; }
+* { margin: 0; box-sizing: border-box; }
+body { background: #1B2A3A; }
+section { width: 1920px; height: 1080px; position: relative; overflow: hidden; break-after: page; }
+ul { padding-left: 40px; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #CFCCC2; padding: 0.35em 0.6em; text-align: left; }
+th { font-weight: 600; }
+</style></head><body><section id="cover" data-transition="fade" style="background:#1B2A3A;color:#F7F6F2;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:space-between">
+<div style="display:flex;flex-direction:column;gap:32px">
+<p style="font-size:32px;color:#E8A35C;letter-spacing:2px;text-transform:uppercase">CT-468 Deep Learning, paper reproduction</p>
+<h1 style="font-family:'Source Serif 4', Georgia, serif;font-size:112px;font-weight:600;line-height:1.08;color:#F7F6F2">Mimetic initialization of self-attention layers</h1>
+<p style="font-size:40px;color:#C9D3DD">Trockman and Kolter, ICML 2023. Reproduced on CIFAR-10 with a ViT written from scratch.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<p style="font-size:32px;font-weight:600;color:#F7F6F2">Team 404 Not Found</p>
+<p style="font-size:28px;color:#C9D3DD">Syed Mohammad Huzaifa, Muhammad Maaz ur Rehman, Shaikh Muhammad Zain</p>
+</div>
+
+</section>
+
+<section id="paper" data-transition="fade" style="background:#F7F6F2;color:#1B2A3A;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1.1;color:#1B2A3A">The paper: copy two patterns from pretrained attention</h2>
+<p style="font-size:32px;line-height:1.4;color:#4A5568">ViTs trained from scratch on small datasets do poorly. In a ViT pretrained on ImageNet, every attention layer shows two diagonal patterns. Mimetic init builds them into the weights before training, in closed form, with no data.</p>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#2B5F96">Query and key, per head</h3>
+<p style="font-family:'Courier New', monospace;font-size:36px;color:#1B2A3A">W_Q W_K^T ≈ 0.7 Z1 + 0.7 I</p>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">Positive diagonal: a token attends to tokens with similar input, so through the position embeddings to itself and nearby patches. A locality bias like a convolution.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#B35C14">Value and projection, per layer</h3>
+<p style="font-family:'Courier New', monospace;font-size:36px;color:#1B2A3A">W_V W_proj ≈ 0.4 Z2 - 0.4 I</p>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">Negative diagonal: each attention block subtracts part of a token's own value from the residual stream, as in the pretrained layers.</p>
+</div>
+</div>
+<p style="font-size:32px;color:#1B2A3A">Main claim, ViT 192/12/3 on CIFAR-10: <b>86.07% to 90.78%</b> (+4.71 points).</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6A7179">2 / 7 · Z1, Z2: random matrices with entries from N(0, 1/d). I: identity.</p>
+
+</section>
+
+<section id="setup" data-transition="fade" style="background:#F7F6F2;color:#1B2A3A;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1.1;color:#1B2A3A">Setup: written from scratch in plain PyTorch</h2>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#1B2A3A">Data</h3>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">CIFAR-10: 50,000 train and 10,000 test images, 32 x 32, 10 classes. No validation set.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#1B2A3A">Model</h3>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">ViT, width 192, depth 12, 3 heads, patch 2: 257 tokens, 5.34M parameters. Fixed sinusoidal position embeddings.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#1B2A3A">Training</h3>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">AdamW, lr 3e-3, weight decay 0.01, batch 512, 100 epochs, RandAugment and Cutout. One T4 on Kaggle, about 2.3 h per run.</p>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#ECEBE5;padding:40px;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#B35C14">Our choices where the paper is silent</h3>
+<p style="font-size:28px;line-height:1.5;color:#1B2A3A">5 warmup epochs then cosine decay · RandAugment(2, 9) · Cutout 16 x 16 · random crop and flip · no dropout · float16 mixed precision · seed 0, one run per setting</p>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6A7179">3 / 7 · Code: model.py, mimetic_init.py, train.py</p>
+
+</section>
+
+<section id="results" data-transition="fade" style="background:#F7F6F2;color:#1B2A3A;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1.1;color:#1B2A3A">Results: the claim holds, with a smaller gain</h2>
+<div style="display:flex;gap:64px;align-items:center">
+<div style="flex:1;display:flex;flex-direction:column;gap:32px">
+<table style="font-size:32px;color:#1B2A3A">
+<tr><th style="width:40%">Epoch 100</th><th style="width:20%;text-align:right">Paper</th><th style="width:20%;text-align:right">Ours</th><th style="width:20%;text-align:right">Diff</th></tr>
+<tr><td>Base</td><td style="text-align:right">86.07</td><td style="text-align:right">85.13</td><td style="text-align:right">-0.94</td></tr>
+<tr><td>Mimetic</td><td style="text-align:right">90.78</td><td style="text-align:right">88.87</td><td style="text-align:right">-1.91</td></tr>
+<tr style="background:#ECEBE5"><td>Gain</td><td style="text-align:right">+4.71</td><td style="text-align:right">+3.74</td><td style="text-align:right">-0.97</td></tr>
+</table>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">Our gain is 79% of the paper's. Mimetic also has the smaller train-test gap: 5.93 points against 9.00.</p>
+</div>
+<img src="../results/test_acc.png" alt="Test accuracy per epoch for base, mimetic and mimetic with position scale 2, with the paper's numbers as dashed lines" style="width:700px;height:566px;object-fit:contain;background:#FFFFFF;border-radius:12px">
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6A7179">4 / 7 · Test accuracy (%) on the 10,000 CIFAR-10 test images, fixed at epoch 100 before training</p>
+
+</section>
+
+<section id="budget" data-transition="fade" style="background:#ECEBE5;color:#1B2A3A;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1.1;color:#1B2A3A">Own experiment: the gain grows with training length</h2>
+<div style="display:flex;gap:64px;align-items:center">
+<div style="flex:1;display:flex;flex-direction:column;gap:32px">
+<p style="font-size:28px;line-height:1.4;color:#4A5568">Separate 25, 50 and 100 epoch runs, each with its own schedule. Only the epoch count changes.</p>
+<table style="font-size:32px;color:#1B2A3A">
+<tr><th style="width:25%">Epochs</th><th style="width:25%;text-align:right">Base</th><th style="width:25%;text-align:right">Mimetic</th><th style="width:25%;text-align:right">Gain</th></tr>
+<tr><td>25</td><td style="text-align:right">79.21</td><td style="text-align:right">81.03</td><td style="text-align:right">+1.82</td></tr>
+<tr><td>50</td><td style="text-align:right">83.98</td><td style="text-align:right">86.40</td><td style="text-align:right">+2.42</td></tr>
+<tr><td>100</td><td style="text-align:right">85.13</td><td style="text-align:right">88.87</td><td style="text-align:right">+3.74</td></tr>
+</table>
+<p style="font-size:28px;line-height:1.4;color:#1B2A3A">Mimetic at 50 epochs (86.40) beats base at 100 epochs (85.13).</p>
+</div>
+<img src="../results/budget.png" alt="Final test accuracy of base and mimetic at 25, 50 and 100 epochs; the mimetic line stays above and the gap widens" style="width:700px;height:566px;object-fit:contain;background:#FFFFFF;border-radius:12px">
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6A7179">5 / 7 · One seed per setting. Two otherwise equal mimetic runs differ by 0.28, a rough noise level.</p>
+
+</section>
+
+<section id="gap" data-transition="fade" style="background:#F7F6F2;color:#1B2A3A;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1.1;color:#1B2A3A">Gap to the paper: base -0.94, mimetic -1.91</h2>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#B35C14">Tested: position embedding scale</h3>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">The paper hints CIFAR-10 used a scale other than 1, and its Figure 4 shows about +0.5 from scale 1 to 2. One mimetic run at scale 2: 88.59 against 88.87. Not the cause.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#2B5F96">Likely, not tested</h3>
+<ul style="font-size:28px;line-height:1.4;color:#4A5568">
+<li>settings the paper does not state</li>
+<li>init of the other layers (paper's code base unknown)</li>
+<li>one run per setting</li>
+</ul>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#ECEBE5;padding:40px;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#1B2A3A">Ruled out</h3>
+<p style="font-size:28px;line-height:1.5;color:#1B2A3A">Under-training (flat at the end) · wrong init (self-test diagonals) · attention code (matches by hand) · best vs final epoch (at most 0.1)</p>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6A7179">6 / 7 · Details: report section 5</p>
+
+</section>
+
+<section id="conclusions" data-transition="fade" style="background:#1B2A3A;color:#F7F6F2;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:56px">
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1.1;color:#F7F6F2">Conclusions</h2>
+<div style="display:flex;gap:48px">
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:120px;font-weight:600;line-height:1;color:#E8A35C">+3.74</p>
+<p style="font-size:28px;line-height:1.4;color:#C9D3DD">points from mimetic init on CIFAR-10 (paper +4.71). The claim reproduces.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:120px;font-weight:600;line-height:1;color:#E8A35C">50 ep</p>
+<p style="font-size:28px;line-height:1.4;color:#C9D3DD">for mimetic to pass base's 100-epoch accuracy. The gain grows with training length.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<p style="font-family:'Source Serif 4', Georgia, serif;font-size:120px;font-weight:600;line-height:1;color:#E8A35C">1-2</p>
+<p style="font-size:28px;line-height:1.4;color:#C9D3DD">points below the paper in absolute accuracy, most likely from settings the paper does not state.</p>
+</div>
+</div>
+<p style="font-size:32px;line-height:1.4;color:#F7F6F2">A closed-form initialization with no data and no pretraining gives a large, reproducible gain for small ViTs.</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#9FB0C0">7 / 7 · AI use (Claude, Anthropic) is cited in the report and README</p>
+
+</section>
+</body></html>

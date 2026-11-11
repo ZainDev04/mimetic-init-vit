@@ -1,0 +1,27 @@
+<section id="paper" data-transition="fade" style="background:#F7F6F2;color:#1B2A3A;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Source Serif 4', Georgia, serif;font-size:72px;font-weight:600;line-height:1.1;color:#1B2A3A">The paper: copy two patterns from pretrained attention</h2>
+<p style="font-size:32px;line-height:1.4;color:#4A5568">ViTs trained from scratch on small datasets do poorly. In a ViT pretrained on ImageNet, every attention layer shows two diagonal patterns. Mimetic init builds them into the weights before training, in closed form, with no data.</p>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#2B5F96">Query and key, per head</h3>
+<p style="font-family:'Courier New', monospace;font-size:36px;color:#1B2A3A">W_Q W_K^T ≈ 0.7 Z1 + 0.7 I</p>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">Positive diagonal: a token attends to tokens with similar input, so through the position embeddings to itself and nearby patches. A locality bias like a convolution.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border:1px solid #DCDAD2;border-radius:16px">
+<h3 style="font-size:32px;font-weight:600;color:#B35C14">Value and projection, per layer</h3>
+<p style="font-family:'Courier New', monospace;font-size:36px;color:#1B2A3A">W_V W_proj ≈ 0.4 Z2 - 0.4 I</p>
+<p style="font-size:28px;line-height:1.4;color:#4A5568">Negative diagonal: each attention block subtracts part of a token's own value from the residual stream, as in the pretrained layers.</p>
+</div>
+</div>
+<p style="font-size:32px;color:#1B2A3A">Main claim, ViT 192/12/3 on CIFAR-10: <b>86.07% to 90.78%</b> (+4.71 points).</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6A7179">2 / 7 · Z1, Z2: random matrices with entries from N(0, 1/d). I: identity.</p>
+<aside>Problem: Vision Transformers trained from scratch on small data like CIFAR-10 do much worse than CNNs. The paper asks whether part of what pretraining gives is just a good starting point for the weights.
+
+Observation: in an ImageNet-pretrained ViT, W_Q W_K^T has a positive diagonal and W_V W_proj has a negative diagonal. Random init has neither.
+
+Method: for each head build M1 = 0.7 Z1 + 0.7 I, take its SVD, keep the top 64 singular values (the head width), and set W_Q = U_k S_k^(1/2), W_K = V_k S_k^(1/2). For each layer build M2 = 0.4 Z2 - 0.4 I, take its full SVD, W_V = U S^(1/2), W_proj = S^(1/2) V^T. Sinusoidal position embeddings are required. Everything else keeps the default init.
+
+Why it helps: with W_Q W_K^T close to the identity, the attention score q . k is large when two tokens have similar inputs. The inputs include the position embeddings, so a token attends to itself and its neighbours from step one.
+
+Paper errors we found: equations 3 to 7 swap the alpha and beta subscripts and give a factorization that does not multiply back to the target. We followed equations 1 and 2, which agree with the text and Figure 1.</aside>
+</section>
